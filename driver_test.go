@@ -83,6 +83,8 @@ func (driver *TestServerDriver) Init(t *testing.T) {
 	}
 }
 
+var syncLog sync.Mutex
+
 // NewTestServerWithTestDriver provides a server instantiated with some settings
 func NewTestServerWithTestDriver(t *testing.T, driver *TestServerDriver) *FtpServer {
 	driver.Init(t)
@@ -91,10 +93,14 @@ func NewTestServerWithTestDriver(t *testing.T, driver *TestServerDriver) *FtpSer
 
 	// If we are in debug mode, we should log things
 	if driver.Debug {
-		s.Logger = gokit.NewWrap(gklog.NewLogfmtLogger(gklog.NewSyncWriter(os.Stdout))).With(
+		logger := gokit.NewWrap(gklog.NewLogfmtLogger(gklog.NewSyncWriter(os.Stdout)))
+
+		syncLog.Lock()
+		s.Logger = logger.With(
 			"ts", gokit.GKDefaultTimestampUTC,
 			"caller", gokit.GKDefaultCaller,
 		)
+		syncLog.Unlock()
 	}
 
 	return s
