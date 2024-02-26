@@ -38,11 +38,30 @@ var errInvalidTLSCertificate = errors.New("invalid TLS certificate")
 
 // NewTestServer provides a test server with or without debugging
 func NewTestServer(t *testing.T, debug bool) *FtpServer {
-	return NewTestServerWithDriver(t, &TestServerDriver{Debug: debug})
+	return NewTestServerWithTestDriver(t, &TestServerDriver{Debug: debug})
 }
 
-// NewTestServerWithDriver provides a server instantiated with some settings
-func NewTestServerWithDriver(t *testing.T, driver *TestServerDriver) *FtpServer {
+func NewTestServerWithDriver(t *testing.T, driver MainDriver) *FtpServer {
+	s := NewFtpServer(driver)
+
+	if err := s.Listen(); err != nil {
+		return nil
+	}
+
+	t.Cleanup(func() {
+		mustStopServer(s)
+	})
+
+	go func() {
+		if err := s.Serve(); err != nil && err != io.EOF {
+			s.Logger.Error("problem serving", "err", err)
+		}
+	}()
+
+	return s
+}
+
+func (driver *TestServerDriver) Init(t *testing.T) {
 	t.Parallel()
 
 	if driver.Settings == nil {
@@ -62,8 +81,13 @@ func NewTestServerWithDriver(t *testing.T, driver *TestServerDriver) *FtpServer 
 		}
 		driver.fs = afero.NewBasePathFs(afero.NewOsFs(), dir)
 	}
+}
 
-	s := NewFtpServer(driver)
+// NewTestServerWithTestDriver provides a server instantiated with some settings
+func NewTestServerWithTestDriver(t *testing.T, driver *TestServerDriver) *FtpServer {
+	driver.Init(t)
+
+	s := NewTestServerWithDriver(t, driver)
 
 	// If we are in debug mode, we should log things
 	if driver.Debug {
@@ -72,20 +96,6 @@ func NewTestServerWithDriver(t *testing.T, driver *TestServerDriver) *FtpServer 
 			"caller", gokit.GKDefaultCaller,
 		)
 	}
-
-	if err := s.Listen(); err != nil {
-		return nil
-	}
-
-	t.Cleanup(func() {
-		mustStopServer(s)
-	})
-
-	go func() {
-		if err := s.Serve(); err != nil && err != io.EOF {
-			s.Logger.Error("problem serving", "err", err)
-		}
-	}()
 
 	return s
 }
@@ -103,8 +113,6 @@ type TestServerDriver struct {
 	TLSVerificationReply tlsVerificationReply
 	errPassiveListener   error
 	TLSRequirement       TLSRequirement
-	customAuthMessage    bool
-	customQuitMessage    bool
 }
 
 // TestClientDriver defines a minimal serverftp client driver
@@ -239,12 +247,12 @@ func (driver *TestServerDriver) AuthUser(_ ClientContext, user, pass string) (Cl
 	return nil, errBadUserNameOrPassword
 }
 
-// PostAuthMessage returns a message displayed after authentication
-func (driver *TestServerDriver) PostAuthMessage(cc ClientContext, user string, authErr error) string {
-	if !driver.customAuthMessage {
-		return ""
-	}
+type MesssageDriver struct {
+	TestServerDriver
+}
 
+// PostAuthMessage returns a message displayed after authentication
+func (driver *MesssageDriver) PostAuthMessage(cc ClientContext, user string, authErr error) string {
 	if authErr != nil {
 		return "You are not welcome here"
 	}
@@ -253,11 +261,7 @@ func (driver *TestServerDriver) PostAuthMessage(cc ClientContext, user string, a
 }
 
 // QuitMessage returns a goodbye message
-func (driver *TestServerDriver) QuitMessage() string {
-	if !driver.customQuitMessage {
-		return ""
-	}
-
+func (driver *MesssageDriver) QuitMessage() string {
 	return "Sayonara, bye bye!"
 }
 

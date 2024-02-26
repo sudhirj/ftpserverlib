@@ -44,7 +44,7 @@ func TestSiteCommand(t *testing.T) {
 // will timeout. I handle idle timeout myself in SFTPGo but you could be
 // interested to fix this bug
 func TestIdleTimeout(t *testing.T) {
-	s := NewTestServerWithDriver(t, &TestServerDriver{Debug: false, Settings: &Settings{IdleTimeout: 2}})
+	s := NewTestServerWithTestDriver(t, &TestServerDriver{Debug: false, Settings: &Settings{IdleTimeout: 2}})
 	conf := goftp.Config{
 		User:     authUser,
 		Password: authPass,
@@ -151,7 +151,7 @@ func TestOPTSUTF8(t *testing.T) {
 }
 
 func TestOPTSHASH(t *testing.T) {
-	s := NewTestServerWithDriver(
+	s := NewTestServerWithTestDriver(
 		t,
 		&TestServerDriver{
 			Debug: false,
@@ -247,7 +247,7 @@ func TestAVBL(t *testing.T) {
 }
 
 func TestQuit(t *testing.T) {
-	s := NewTestServerWithDriver(t, &TestServerDriver{
+	s := NewTestServerWithTestDriver(t, &TestServerDriver{
 		Debug: false,
 		TLS:   true,
 	})
@@ -275,38 +275,31 @@ func TestQuit(t *testing.T) {
 	require.Equal(t, StatusClosingControlConn, rc)
 }
 
-func TestQuitWithCustomMessage(_t *testing.T) {
-	s := NewTestServerWithDriver(_t, &TestServerDriver{
-		Debug:             true,
-		TLS:               true,
-		customQuitMessage: true,
-	})
-	t := require.New(_t)
+func TestQuitWithCustomMessage(t *testing.T) {
+	driver := &MesssageDriver{}
+	driver.Init(t)
+	s := NewTestServerWithDriver(t, driver)
+	r := require.New(t)
 	conf := goftp.Config{
 		User:     authUser,
 		Password: authPass,
-		TLSConfig: &tls.Config{
-			//nolint:gosec
-			InsecureSkipVerify: true,
-		},
-		TLSMode: goftp.TLSExplicit,
 	}
 	c, err := goftp.DialConfig(conf, s.Addr())
-	t.NoError(err, "Couldn't connect")
+	r.NoError(err, "Couldn't connect")
 
 	defer func() { panicOnError(c.Close()) }()
 
 	raw, err := c.OpenRawConn()
-	t.NoError(err, "Couldn't open raw connection")
+	r.NoError(err, "Couldn't open raw connection")
 
 	rc, msg, err := raw.SendCommand("QUIT")
-	t.NoError(err)
-	t.Equal(StatusClosingControlConn, rc)
-	t.Equal("Sayonara, bye bye!", msg)
+	r.NoError(err)
+	r.Equal(StatusClosingControlConn, rc)
+	r.Equal("Sayonara, bye bye!", msg)
 }
 
 func TestQuitWithTransferInProgress(t *testing.T) {
-	s := NewTestServerWithDriver(t, &TestServerDriver{
+	s := NewTestServerWithTestDriver(t, &TestServerDriver{
 		Debug: false,
 	})
 	conf := goftp.Config{

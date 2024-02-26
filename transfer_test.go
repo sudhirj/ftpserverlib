@@ -167,7 +167,7 @@ func ftpDelete(t *testing.T, ftp *goftp.Client, filename string) {
 }
 
 func TestTransferIPv6(t *testing.T) {
-	s := NewTestServerWithDriver(
+	s := NewTestServerWithTestDriver(
 		t,
 		&TestServerDriver{
 			Debug: false,
@@ -189,7 +189,7 @@ func TestTransferIPv6(t *testing.T) {
 // TestTransfer validates the upload of file in both active and passive mode
 func TestTransfer(t *testing.T) {
 	t.Run("without-tls", func(t *testing.T) {
-		s := NewTestServerWithDriver(
+		s := NewTestServerWithTestDriver(
 			t,
 			&TestServerDriver{
 				Debug: false,
@@ -203,7 +203,7 @@ func TestTransfer(t *testing.T) {
 		testTransferOnConnection(t, s, true, false, false)
 	})
 	t.Run("with-tls", func(t *testing.T) {
-		s := NewTestServerWithDriver(
+		s := NewTestServerWithTestDriver(
 			t,
 			&TestServerDriver{
 				Debug: false,
@@ -219,7 +219,7 @@ func TestTransfer(t *testing.T) {
 	})
 
 	t.Run("with-implicit-tls", func(t *testing.T) {
-		s := NewTestServerWithDriver(t, &TestServerDriver{
+		s := NewTestServerWithTestDriver(t, &TestServerDriver{
 			Debug: false,
 			TLS:   true,
 			Settings: &Settings{
@@ -272,7 +272,7 @@ func testTransferOnConnection(t *testing.T, server *FtpServer, active, enableTLS
 }
 
 func TestActiveModeDisabled(t *testing.T) {
-	server := NewTestServerWithDriver(t, &TestServerDriver{
+	server := NewTestServerWithTestDriver(t, &TestServerDriver{
 		Debug: false,
 		Settings: &Settings{
 			ActiveTransferPortNon20: true,
@@ -381,7 +381,7 @@ func TestFailingFileTransfer(t *testing.T) {
 	driver := &TestServerDriver{
 		Debug: false,
 	}
-	s := NewTestServerWithDriver(t, driver)
+	s := NewTestServerWithTestDriver(t, driver)
 	conf := goftp.Config{
 		User:     authUser,
 		Password: authPass,
@@ -445,7 +445,7 @@ func TestAPPEExistingFile(t *testing.T) {
 	driver := &TestServerDriver{
 		Debug: false,
 	}
-	s := NewTestServerWithDriver(t, driver)
+	s := NewTestServerWithTestDriver(t, driver)
 	conf := goftp.Config{
 		User:     authUser,
 		Password: authPass,
@@ -494,7 +494,7 @@ func TestAPPENewFile(t *testing.T) {
 	driver := &TestServerDriver{
 		Debug: false,
 	}
-	s := NewTestServerWithDriver(t, driver)
+	s := NewTestServerWithTestDriver(t, driver)
 	conf := goftp.Config{
 		User:     authUser,
 		Password: authPass,
@@ -526,7 +526,7 @@ func TestTransfersFromOffset(t *testing.T) {
 	driver := &TestServerDriver{
 		Debug: false,
 	}
-	s := NewTestServerWithDriver(t, driver)
+	s := NewTestServerWithTestDriver(t, driver)
 	conf := goftp.Config{
 		User:     authUser,
 		Password: authPass,
@@ -923,7 +923,7 @@ func TestASCIITransfersInvalidFiles(t *testing.T) {
 }
 
 func TestPASVWrappedListenerError(t *testing.T) {
-	s := NewTestServerWithDriver(t, &TestServerDriver{
+	s := NewTestServerWithTestDriver(t, &TestServerDriver{
 		Debug:              true,
 		errPassiveListener: os.ErrClosed,
 	})
